@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>AirSpot — Worker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="card" id="loginBox">
+      <h2>Worker Login</h2>
+      <input id="email" placeholder="email" />
+      <input id="password" type="password" placeholder="password" />
+      <div style="margin-top:10px">
+        <button class="btn" onclick="login()">Login</button>
+      </div>
+      <div class="small" style="margin-top:12px">If you don't have an account, register via API or use the /api/auth/register route.</div>
+    </div>
+
+    <div id="dashboard" style="display:none">
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <h2 id="who">Welcome</h2>
+          <div class="small" id="role"></div>
+        </div>
+        <div>
+          <button class="btn" onclick="clock('in')">Clock In</button>
+          <button class="btn" onclick="clock('out')">Clock Out</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px">
+        <h3>Inventory (read-only)</h3>
+        <div id="inventory"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+let token = null;
+async function login(){
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const r = await fetch('/api/auth/login', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password})
+  });
+  const j = await r.json();
+  if(j.token){ token = j.token; document.getElementById('loginBox').style.display='none'; document.getElementById('dashboard').style.display='block';
+    document.getElementById('who').innerText = 'Hey, '+j.user.name; document.getElementById('role').innerText = j.user.role;
+    loadInventory();
+  } else alert('bad creds');
+}
+
+async function clock(action){
+  const r = await fetch('/api/workers/clock', {
+    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    body:JSON.stringify({action})
+  });
+  const j = await r.json();
+  if(r.ok) alert(j.msg);
+  else alert(j.msg || 'error');
+}
+
+async function loadInventory(){
+  const r = await fetch('/api/workers/inventory', {headers:{'Authorization':'Bearer '+token}});
+  const items = await r.json();
+  document.getElementById('inventory').innerHTML = items.map(i=>`
+    <div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid rgba(0,0,0,0.04)">
+      <div><strong>${i.name}</strong><div class="small">${i.description || ''}</div></div>
+      <div style="text-align:right">
+        <div>$${i.price.toFixed(2)}</div>
+        <div class="small">Qty: ${i.quantity}</div>
+      </div>
+    </div>`).join('');
+}
+</script>
+</body>
+</html>

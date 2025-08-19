@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>AirSpot — Store</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1 class="card">AirSpot — Shop</h1>
+    <div id="products" class="product-grid"></div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    // fetch and render
+    async function load(){
+      const res = await fetch('/api/products');
+      const prods = await res.json();
+      const wrap = document.getElementById('products');
+      wrap.innerHTML = prods.map(p=>`
+        <div class="product card">
+          <div style="height:140px;display:flex;align-items:center;justify-content:center">
+            <img src="${p.image || 'https://via.placeholder.com/140'}" style="max-height:120px;max-width:100%" />
+          </div>
+          <h3>${p.name}</h3>
+          <div class="small">${p.description || ''}</div>
+          <div class="price">$${p.price.toFixed(2)}</div>
+          <div style="margin-top:8px">
+            <button class="btn" onclick="addToCart('${p._id}')">Add</button>
+            <span class="small" style="margin-left:8px">Stock: ${p.quantity}</span>
+          </div>
+        </div>`).join('');
+    }
+    load();
+
+    function addToCart(id){
+      alert('Demo — add to cart functionality goes here. Product id: '+id);
+    }
+  </script>
+</body>
+</html>
