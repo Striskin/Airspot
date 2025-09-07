@@ -1,7 +1,37 @@
 [
-  { "name": "AirSpot Pillow Firm", "description": "Firm support pillow", "price": 39.99, "quantity": 20 },
-  { "name": "AirSpot Pillow Sturdy", "description": "Sturdy support pillow", "price": 44.99, "quantity": 20 },
-  { "name": "AirSpot Pillow Hard", "description": "Hard support pillow", "price": 49.99, "quantity": 20 },
-  { "name": "AirSpot Pillow Soft", "description": "Soft support pillow", "price": 34.99, "quantity": 20 },
-  { "name": "AirSpot Pillow Ultra", "description": "Ultra support pillow", "price": 54.99, "quantity": 20 }
+  { 
+    "name": "AirSpot Pillow Firm", 
+    "description": "Firm support pillow", 
+    "price": 39.99, 
+    "quantity": 20,
+    "image": "/images/pillow-firm.png"
+  },
+  { 
+    "name": "AirSpot Pillow Sturdy", 
+    "description": "Sturdy support pillow", 
+    "price": 44.99, 
+    "quantity": 20,
+    "image": "/images/pillow-sturdy.png"
+  },
+  { 
+    "name": "AirSpot Pillow Hard", 
+    "description": "Hard support pillow", 
+    "price": 49.99, 
+    "quantity": 20,
+    "image": "/images/pillow-hard.png"
+  },
+  { 
+    "name": "AirSpot Pillow Soft", 
+    "description": "Soft support pillow", 
+    "price": 34.99, 
+    "quantity": 20,
+    "image": "/images/pillow-soft.png"
+  },
+  { 
+    "name": "AirSpot Pillow Ultra", 
+    "description": "Ultra support pillow", 
+    "price": 54.99, 
+    "quantity": 20,
+    "image": "/images/pillow-ultra.png"
+  }
 ]
