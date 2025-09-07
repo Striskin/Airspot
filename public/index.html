@@ -2,42 +2,37 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>AirSpot — Store</title>
+  <title>AirSpot — Shop</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="app.css" />
 </head>
 <body>
-  <div class="container">
+  <!-- Navbar (card-style) -->
+  <header class="navbar-card" role="banner">
+    <div class="brand">
+      <div class="logo" id="logo-btn">☁</div>
+      <h1>AirSpot</h1>
+    </div>
+    <div class="controls">
+      <button class="btn" id="btn-worker">Worker</button>
+      <button class="btn" id="btn-user">Sign In / Sign Up</button>
+      <button class="btn" id="btn-cart">Cart <span class="badge" id="nav-badge">0</span></button>
+    </div>
+  </header>
+
+  <main class="container">
     <h1 class="card">AirSpot — Shop</h1>
+
     <div id="products" class="product-grid"></div>
-  </div>
+  </main>
 
   <script src="app.js"></script>
   <script>
-    // fetch and render
-    async function load(){
-      const res = await fetch('/api/products');
-      const prods = await res.json();
-      const wrap = document.getElementById('products');
-      wrap.innerHTML = prods.map(p=>`
-        <div class="product card">
-          <div style="height:140px;display:flex;align-items:center;justify-content:center">
-            <img src="${p.image || 'https://via.placeholder.com/140'}" style="max-height:120px;max-width:100%" />
-          </div>
-          <h3>${p.name}</h3>
-          <div class="small">${p.description || ''}</div>
-          <div class="price">$${p.price.toFixed(2)}</div>
-          <div style="margin-top:8px">
-            <button class="btn" onclick="addToCart('${p._id}')">Add</button>
-            <span class="small" style="margin-left:8px">Stock: ${p.quantity}</span>
-          </div>
-        </div>`).join('');
-    }
-    load();
-
-    function addToCart(id){
-      alert('Demo — add to cart functionality goes here. Product id: '+id);
-    }
+    // attach navbar button behavior (they navigate)
+    document.getElementById('btn-cart').addEventListener('click', () => location.href = '/cart.html');
+    document.getElementById('btn-worker').addEventListener('click', () => location.href = '/worker.html');
+    document.getElementById('btn-user').addEventListener('click', () => location.href = '/user.html');
+    document.getElementById('logo-btn').addEventListener('click', () => location.href = '/');
   </script>
 </body>
 </html>

@@ -4,76 +4,78 @@
   <meta charset="utf-8" />
   <title>AirSpot — Worker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="app.css" />
 </head>
 <body>
-  <div class="container">
-    <div class="card" id="loginBox">
+  <header class="navbar-card" role="banner">
+    <div class="brand">
+      <div class="logo" id="logo-btn">☁</div>
+      <h1>AirSpot</h1>
+    </div>
+    <div class="controls">
+      <button class="btn" onclick="location.href='/'">Shop</button>
+      <button class="btn" onclick="location.href='/cart.html'">Cart</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="card">
       <h2>Worker Login</h2>
-      <input id="email" placeholder="email" />
-      <input id="password" type="password" placeholder="password" />
-      <div style="margin-top:10px">
-        <button class="btn" onclick="login()">Login</button>
+
+      <div style="max-width:520px">
+        <input id="w-name" class="input" placeholder="Name (for register)" />
+        <input id="w-email" class="input" placeholder="Email" />
+        <input id="w-password" class="input" placeholder="Password" type="password" />
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn" id="w-register">Register</button>
+          <button class="btn" id="w-login">Login</button>
+        </div>
+        <div id="workerMsg" class="small-note"></div>
       </div>
-      <div class="small" style="margin-top:12px">If you don't have an account, register via API or use the /api/auth/register route.</div>
     </div>
 
-    <div id="dashboard" style="display:none">
-      <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+    <div class="card" id="workerPanel" style="display:none;margin-top:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
-          <h2 id="who">Welcome</h2>
-          <div class="small" id="role"></div>
+          <h3 id="who">Worker</h3>
+          <div id="role" class="small"></div>
         </div>
         <div>
-          <button class="btn" onclick="clock('in')">Clock In</button>
-          <button class="btn" onclick="clock('out')">Clock Out</button>
+          <button class="btn" id="clockInBtn">Clock In</button>
+          <button class="btn" id="clockOutBtn">Clock Out</button>
         </div>
       </div>
 
-      <div class="card" style="margin-top:18px">
-        <h3>Inventory (read-only)</h3>
-        <div id="inventory"></div>
+      <div style="margin-top:12px">
+        <h4>Your hours</h4>
+        <div id="hours">—</div>
+        <h4 style="margin-top:12px">Shifts</h4>
+        <div id="shifts"></div>
       </div>
     </div>
-  </div>
 
-<script>
-let token = null;
-async function login(){
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  const r = await fetch('/api/auth/login', {
-    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password})
+    <div class="card" style="margin-top:18px">
+      <h3>Inventory (read-only)</h3>
+      <div id="inventory"></div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // wire register / login
+      document.getElementById('w-register').addEventListener('click', () => {
+        AirSpot.workerRegisterFromPage();
+      });
+      document.getElementById('w-login').addEventListener('click', () => {
+        AirSpot.workerLoginFromPage();
+      });
+      document.getElementById('clockInBtn').addEventListener('click', () => AirSpot.workerClock('in'));
+      document.getElementById('clockOutBtn').addEventListener('click', () => AirSpot.workerClock('out'));
+    });
+    document.getElementById('logo-btn').addEventListener('click', () => {
+    window.location.href = '/';
   });
-  const j = await r.json();
-  if(j.token){ token = j.token; document.getElementById('loginBox').style.display='none'; document.getElementById('dashboard').style.display='block';
-    document.getElementById('who').innerText = 'Hey, '+j.user.name; document.getElementById('role').innerText = j.user.role;
-    loadInventory();
-  } else alert('bad creds');
-}
-
-async function clock(action){
-  const r = await fetch('/api/workers/clock', {
-    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-    body:JSON.stringify({action})
-  });
-  const j = await r.json();
-  if(r.ok) alert(j.msg);
-  else alert(j.msg || 'error');
-}
-
-async function loadInventory(){
-  const r = await fetch('/api/workers/inventory', {headers:{'Authorization':'Bearer '+token}});
-  const items = await r.json();
-  document.getElementById('inventory').innerHTML = items.map(i=>`
-    <div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid rgba(0,0,0,0.04)">
-      <div><strong>${i.name}</strong><div class="small">${i.description || ''}</div></div>
-      <div style="text-align:right">
-        <div>$${i.price.toFixed(2)}</div>
-        <div class="small">Qty: ${i.quantity}</div>
-      </div>
-    </div>`).join('');
-}
-</script>
+  </script>
 </body>
 </html>

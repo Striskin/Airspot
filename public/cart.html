@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>AirSpot — Cart</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <header class="navbar-card" role="banner">
+    <div class="brand">
+      <div class="logo" id="logo-btn">☁</div>
+      <h1>AirSpot</h1>
+    </div>
+    <div class="controls">
+      <button class="btn" onclick="location.href='/'">Shop</button>
+      <button class="btn" onclick="location.href='/user.html'">Sign In / Sign Up</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="card">
+      <h2>Your Cart</h2>
+
+      <div id="cartArea">
+        <div id="cartList" class="cart-list"></div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px">
+          <div>
+            <input id="custName" class="input" placeholder="Your name (optional)" />
+            <input id="custEmail" class="input" placeholder="Email (optional)" />
+          </div>
+          <div style="min-width:220px;text-align:right">
+            <div><strong>Total:</strong> <span id="cartTotal">$0.00</span></div>
+            <button class="btn" id="checkoutBtn" style="margin-top:12px">Checkout</button>
+          </div>
+        </div>
+
+        <div id="cartMsg" class="small-note"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    // On page ready, render cart
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.AirSpot && AirSpot.renderCartPage) AirSpot.renderCartPage();
+    });
+    document.getElementById('checkoutBtn').addEventListener('click', () => {
+      if (window.AirSpot && AirSpot.handleCheckoutFromPage) AirSpot.handleCheckoutFromPage();
+    });
+    document.getElementById('logo-btn').addEventListener('click', () => {
+        location.href = '/';
+  });
+  </script>
+</body>
+</html>
