@@ -1,0 +1,6 @@
+projectKey=SUMTOPROVE
+serverUrl=http://localhost:9000
+serverVersion=25.9.0.112764
+dashboardUrl=http://localhost:9000/dashboard?id=SUMTOPROVE
+ceTaskId=1a8f4de1-3ba5-494b-9fa6-1d633ece8777
+ceTaskUrl=http://localhost:9000/api/ce/task?id=1a8f4de1-3ba5-494b-9fa6-1d633ece8777
