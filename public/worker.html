@@ -19,9 +19,9 @@
   </header>
 
   <main class="container">
-    <div class="card">
+    <!-- LOGIN (se oculta tras iniciar sesión) -->
+    <div class="card" id="loginCard">
       <h2>Worker Login</h2>
-
       <div style="max-width:520px">
         <input id="w-name" class="input" placeholder="Name (for register)" />
         <input id="w-email" class="input" placeholder="Email" />
@@ -34,48 +34,294 @@
       </div>
     </div>
 
+    <!-- PANEL DEL WORKER (solo con sesión) -->
     <div class="card" id="workerPanel" style="display:none;margin-top:18px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
           <h3 id="who">Worker</h3>
           <div id="role" class="small"></div>
         </div>
-        <div>
+        <div style="display:flex;gap:8px">
           <button class="btn" id="clockInBtn">Clock In</button>
           <button class="btn" id="clockOutBtn">Clock Out</button>
+          <!-- Logout rojo (inline) -->
+          <button class="btn" id="logoutBtn" title="Sign out"
+                  style="background-color:#dc2626;color:#ffffff;">
+            Logout
+          </button>
         </div>
       </div>
 
       <div style="margin-top:12px">
         <h4>Your hours</h4>
-        <div id="hours">—</div>
+        <div id="hours" style="font-variant-numeric: tabular-nums; font-size: 1.1rem;">—</div>
+
         <h4 style="margin-top:12px">Shifts</h4>
         <div id="shifts"></div>
       </div>
     </div>
 
-    <div class="card" style="margin-top:18px">
-      <h3>Inventory (read-only)</h3>
-      <div id="inventory"></div>
+    <!-- INVENTARIO (OCULTO HASTA LOGIN) -->
+    <div class="card" id="inventorySection" style="display:none;margin-top:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3>Inventory (read-only)</h3>
+        <button class="btn" id="refreshInventoryBtn" title="Refresh">⟳</button>
+      </div>
+      <div id="inventory" class="list"></div>
+    </div>
+
+    <!-- LISTA DE TRABAJADORES (OCULTO HASTA LOGIN) -->
+    <div class="card" id="workersSection" style="display:none;margin-top:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3>Workers (read-only)</h3>
+        <button class="btn" id="refreshWorkersBtn" title="Refresh">⟳</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:8px">
+        <table id="workersTable" style="width:100%; border-collapse:collapse">
+          <thead>
+            <tr style="border-bottom:1px solid #e9eef3">
+              <th style="text-align:left;padding:8px 4px;">Name</th>
+              <th style="text-align:left;padding:8px 4px;">Email</th>
+              <th style="text-align:left;padding:8px 4px;">Role</th>
+              <th style="text-align:left;padding:8px 4px;">Shifts</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="4" style="padding:10px;color:#6b7280;">No data</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </main>
 
+  <!-- Script global -->
   <script src="app.js"></script>
+
+  <!-- Script de página -->
   <script>
+    const TOKEN_KEY = 'airspot_token'; // la misma clave que usa app.js
+    const $ = (id) => document.getElementById(id);
+    const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    const hasToken = () => !!localStorage.getItem(TOKEN_KEY);
+    const authHeader = () => {
+      const t = localStorage.getItem(TOKEN_KEY);
+      return t ? { 'Authorization': 'Bearer ' + t } : {};
+    };
+
+    // Helpers de tiempo
+    function pad(n){ return String(n).padStart(2, '0'); }
+    function formatHMS(ms){
+      if (ms < 0) ms = 0;
+      const s = Math.floor(ms/1000);
+      const hh = Math.floor(s/3600);
+      const mm = Math.floor((s%3600)/60);
+      const ss = s%60;
+      return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
+    }
+
+    // Mostrar/ocultar login + paneles
+    function showAfterLogin(show) {
+      $('loginCard').style.display       = show ? 'none' : '';
+      $('workerPanel').style.display     = show ? '' : 'none';
+      $('inventorySection').style.display= show ? '' : 'none';
+      $('workersSection').style.display  = show ? '' : 'none';
+    }
+
+    // Fetch JSON seguro
+    async function getJSON(url, opts = {}) {
+      const resp = await fetch(url, { ...opts, headers: { 'Accept':'application/json', ...(opts.headers||{}) } });
+      const ct = resp.headers.get('content-type') || '';
+      const txt = await resp.text();
+      if (!ct.includes('application/json')) {
+        console.error('Respuesta no JSON:', resp.status, ct, txt.slice(0,200));
+        throw new Error(`Esperaba JSON y llegó ${ct} (status ${resp.status}).`);
+      }
+      const data = JSON.parse(txt);
+      if (!resp.ok) throw new Error(data?.error || data?.message || `HTTP ${resp.status}`);
+      return data;
+    }
+
+    // INVENTARIO
+    window.AirSpot = window.AirSpot || {};
+    AirSpot.loadInventory = async function () {
+      const el = $('inventory');
+      if (!el) return;
+      el.textContent = 'Loading...';
+      try {
+        const items = await getJSON('/api/products', { headers: { ...authHeader() } });
+        if (!Array.isArray(items) || items.length === 0) {
+          el.innerHTML = '<div class="small-note">No inventory</div>';
+          return;
+        }
+        el.innerHTML = items.map(p => `
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9">
+            <div><strong>${escapeHtml(p.name || 'Producto')}</strong></div>
+            <div style="color:#6b7280">${p.price != null ? ('$' + p.price) : ''}</div>
+          </div>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+        el.innerHTML = '<div class="small-note" style="color:#b91c1c">Error loading inventory</div>';
+      }
+    };
+
+    // WORKERS LIST
+    async function loadWorkers() {
+      const tbody = document.querySelector('#workersTable tbody');
+      if (!tbody) return;
+      tbody.innerHTML = `<tr><td colspan="4" style="padding:10px;color:#6b7280;">Loading…</td></tr>`;
+      try {
+        const workers = await getJSON('/api/workers', { headers: { ...authHeader() } });
+        if (!Array.isArray(workers) || workers.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" style="padding:10px;color:#6b7280;">No workers</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = workers.map(w => `
+          <tr style="border-bottom:1px solid #f1f5f9">
+            <td style="padding:8px 4px">${escapeHtml(w.name)}</td>
+            <td style="padding:8px 4px">${escapeHtml(w.email)}</td>
+            <td style="padding:8px 4px">${escapeHtml(w.role)}</td>
+            <td style="padding:8px 4px">${Number(w.shiftsCount || (w.shifts?.length ?? 0))}</td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+        tbody.innerHTML = `<tr><td colspan="4" style="padding:10px;color:#b91c1c;">Error</td></tr>`;
+      }
+    }
+
+    // PERFIL + TEMPORIZADOR
+    let timerHandle = null;
+
+    async function loadProfileAndTimer() {
+      try {
+        const me = await getJSON('/api/workers/me', { headers: { ...authHeader() } });
+        if (me?.name) $('who').textContent = me.name;
+        if (me?.role) $('role').textContent = me.role;
+
+        renderShifts(me.shifts || []);
+        startOrRenderTimer(me.shifts || []);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function startOrRenderTimer(shifts) {
+      const hoursEl = $('hours');
+      if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
+      if (!Array.isArray(shifts) || shifts.length === 0) { hoursEl.textContent = '—'; return; }
+
+      const last = shifts[shifts.length - 1];
+      const start = last?.start ? new Date(last.start) : null;
+      const end   = last?.end   ? new Date(last.end)   : null;
+      if (!start) { hoursEl.textContent = '—'; return; }
+
+      if (!end) {
+        const tick = () => {
+          const diff = Date.now() - start.getTime();
+          hoursEl.textContent = `Running: ${formatHMS(diff)} (since ${start.toLocaleTimeString()})`;
+        };
+        tick();
+        timerHandle = setInterval(tick, 1000);
+      } else {
+        const diff = end.getTime() - start.getTime();
+        hoursEl.textContent = `Last shift: ${formatHMS(diff)} (${start.toLocaleTimeString()}–${end.toLocaleTimeString()})`;
+      }
+    }
+
+    function renderShifts(shifts) {
+      const box = $('shifts');
+      if (!Array.isArray(shifts) || shifts.length === 0) {
+        box.innerHTML = '<div class="small-note">No shifts</div>';
+        return;
+      }
+      const recent = shifts.slice(-5).reverse();
+      box.innerHTML = recent.map(s => {
+        const st = s.start ? new Date(s.start) : null;
+        const en = s.end ? new Date(s.end) : null;
+        const status = en ? 'Closed' : 'Open';
+        const line = en
+          ? `${st.toLocaleDateString()} — ${st.toLocaleTimeString()}–${en.toLocaleTimeString()}`
+          : `${st.toLocaleDateString()} — ${st.toLocaleTimeString()}–…`;
+        return `<div style="padding:6px 0;border-bottom:1px solid #f1f5f9">
+                  <strong>${status}</strong>
+                  <div class="small-note">${line}</div>
+                </div>`;
+      }).join('');
+    }
+
+    // Eventos
     document.addEventListener('DOMContentLoaded', () => {
-      // wire register / login
-      document.getElementById('w-register').addEventListener('click', () => {
-        AirSpot.workerRegisterFromPage();
+      $('logo-btn').addEventListener('click', () => (window.location.href = '/'));
+
+      // Login / Register
+      $('w-register').addEventListener('click', () => AirSpot.workerRegisterFromPage());
+      $('w-login').addEventListener('click', async () => {
+        try {
+          await AirSpot.workerLoginFromPage(); // guarda airspot_token
+          setTimeout(async () => {
+            if (!hasToken()) { alert('Login OK, pero no se recibió token.'); return; }
+            showAfterLogin(true);
+            AirSpot.loadWorkerPanel && AirSpot.loadWorkerPanel();
+            await Promise.all([ AirSpot.loadInventory(), loadWorkers(), loadProfileAndTimer() ]);
+          }, 200);
+        } catch (e) {
+          console.error(e);
+          alert(e.message);
+        }
       });
-      document.getElementById('w-login').addEventListener('click', () => {
-        AirSpot.workerLoginFromPage();
+
+      // Clock in/out
+      $('clockInBtn')?.addEventListener('click', async () => {
+        try {
+          await fetch('/api/workers/clock', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json', ...authHeader() },
+            body: JSON.stringify({ action: 'in' })
+          });
+          await loadProfileAndTimer();
+        } catch (e) { console.error(e); }
       });
-      document.getElementById('clockInBtn').addEventListener('click', () => AirSpot.workerClock('in'));
-      document.getElementById('clockOutBtn').addEventListener('click', () => AirSpot.workerClock('out'));
+
+      $('clockOutBtn')?.addEventListener('click', async () => {
+        try {
+          await fetch('/api/workers/clock', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json', ...authHeader() },
+            body: JSON.stringify({ action: 'out' })
+          });
+          await loadProfileAndTimer();
+        } catch (e) { console.error(e); }
+      });
+
+      // Logout
+      $('logoutBtn').addEventListener('click', () => {
+        localStorage.removeItem(TOKEN_KEY);
+        if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
+        showAfterLogin(false);
+        // Limpieza visual
+        $('hours').textContent = '—';
+        $('shifts').innerHTML = '';
+        const tbody = document.querySelector('#workersTable tbody');
+        if (tbody) tbody.innerHTML = `<tr><td colspan="4" style="padding:10px;color:#6b7280;">No data</td></tr>`;
+        $('inventory').innerHTML = '';
+      });
+
+      // Refresh botones
+      $('refreshInventoryBtn').addEventListener('click', () => AirSpot.loadInventory());
+      $('refreshWorkersBtn').addEventListener('click', () => loadWorkers());
+
+      // Si ya hay sesión previa
+      if (hasToken()) {
+        showAfterLogin(true);
+        AirSpot.loadWorkerPanel && AirSpot.loadWorkerPanel();
+        AirSpot.loadInventory();
+        loadWorkers();
+        loadProfileAndTimer();
+      } else {
+        showAfterLogin(false);
+      }
     });
-    document.getElementById('logo-btn').addEventListener('click', () => {
-    window.location.href = '/';
-  });
   </script>
 </body>
 </html>

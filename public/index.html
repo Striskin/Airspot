@@ -13,7 +13,13 @@
       <div class="logo" id="logo-btn">☁</div>
       <h1>AirSpot</h1>
     </div>
-    <div class="controls">
+
+    <div class="controls" style="gap:8px;display:flex;align-items:center">
+      <!-- Saludo compacto (solo visible si hay usuario) -->
+      <div id="greetPill" class="btn" style="display:none;cursor:default;opacity:.95">
+        Hi, <span id="greetName">User</span> 👋
+      </div>
+
       <button class="btn" id="btn-worker">Worker</button>
       <button class="btn" id="btn-user">Sign In / Sign Up</button>
       <button class="btn" id="btn-cart">Cart <span class="badge" id="nav-badge">0</span></button>
@@ -23,16 +29,33 @@
   <main class="container">
     <h1 class="card">AirSpot — Shop</h1>
 
+    <!-- (Banner eliminado) -->
+
     <div id="products" class="product-grid"></div>
   </main>
 
   <script src="app.js"></script>
   <script>
-    // attach navbar button behavior (they navigate)
+    // navegación
     document.getElementById('btn-cart').addEventListener('click', () => location.href = '/cart.html');
     document.getElementById('btn-worker').addEventListener('click', () => location.href = '/worker.html');
     document.getElementById('btn-user').addEventListener('click', () => location.href = '/user.html');
     document.getElementById('logo-btn').addEventListener('click', () => location.href = '/');
+
+    // pintar saludo al cargar
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.AirSpot) {
+        AirSpot.renderUserGreeting();
+      }
+    });
+
+    // si cambia el storage (login/logout en otra pestaña) refrescamos
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'airspot_customer' && window.AirSpot) {
+        AirSpot.renderUserGreeting();
+        AirSpot.initShop && AirSpot.initShop();
+      }
+    });
   </script>
 </body>
 </html>
